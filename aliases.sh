@@ -1,28 +1,37 @@
-#!/bin/bash
+#
+# do "platformio run" from within docker
+alias dp_run="docker run --rm  -v $(pwd)/dotplatformio:/.platformio --mount type=bind,source="$(pwd)",target=/workspace  -u `id -u $USER`:`id -g $USER` sglahn/platformio-core:latest run"
 
-VOLUME_CONTAINER_NAME=vc_platformio
-VOLUME_CONTAINER_IMAGE=sglahn/vc_platformio:latest
-IMAGE_NAME=sglahn/platformio-core:latest
+#
+# get bash prompt from inside docker
+alias dp_bash="docker run --rm  -it -v $(pwd)/dotplatformio:/.platformio --mount type=bind,source="$(pwd)",target=/workspace  -u `id -u $USER`:`id -g $USER` --entrypoint=/bin/bash sglahn/platformio-core:latest -i"
 
-if [ ! "$(docker ps -a | grep $VOLUME_CONTAINER_NAME)" ]; then
-    docker run -u `id -u $USER`:`id -g $USER` --name $VOLUME_CONTAINER_NAME $VOLUME_CONTAINER_IMAGE
-fi
 
-DEVICE=
-if [ -e /dev/ttyUSB0 ]; then
-    DEVICE="--device=/dev/ttyUSB0"
-fi
-if [ "$UPLOAD_PORT" ]; then
-    DEVICE=$UPLOAD_PORT
-fi
-if [ "$DEVICE" ]; then
-    echo "Using upload port $DEVICE"
-fi
+#
+# "dp" is a general docker platformio-core replacement for "pio" or "platformio"
+dp()
+{
+    params=()
+    if [ -n ${1} ]; then
+	echo "1: ${1}"
+	params+=( ${1} )
+    fi
+    if [ -n ${2} ]; then
+	echo "2: ${2}"
+	params+=( ${2} )
+    fi
+    if [ -n ${3} ]; then
+	echo "3: ${3}"
+	params+=( ${3} )
+    fi
+    if [ -n ${4} ]; then
+	echo "4: ${4}"
+	params+=( ${4} )
+    fi
+    echo "params=${params[@]}"
+    
+    docker run --rm  -v $(pwd)/dotplatformio:/.platformio \
+	   --mount type=bind,source="$(pwd)",target=/workspace \
+	   -u `id -u $USER`:`id -g $USER` sglahn/platformio-core:latest "${params[@]}"
+}
 
-docker run --rm \
-       -v `pwd`:/workspace \
-       --volumes-from=$VOLUME_CONTAINER_NAME \
-       -u `id -u $USER`:`id -g $USER` \
-       $DEVICE \
-       $IMAGE_NAME \
-       $@
